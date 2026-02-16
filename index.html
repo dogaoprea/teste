@@ -710,6 +710,7 @@
         let currentItems = [];
         let editingOrderCart = [];
         let tempSelectedItem = null; // Variável para controlar item no modal de opções
+        let editingCartItemIndex = null; // NOVA: Índice do item sendo editado no carrinho
         
         let allOrders = []; 
         let currentFilter = 'all'; 
@@ -1311,6 +1312,7 @@
             // Verifica se tem opções configuradas
             if (item.options && item.options.length > 0) {
                 tempSelectedItem = item; 
+                editingCartItemIndex = null; // Garante que é uma nova inserção
                 openOptionsModal(item);
             } else {
                 addItemToCartFinal(item, ''); 
@@ -1338,15 +1340,50 @@
         function closeOptionsModal() {
             document.getElementById('options-selection-modal').classList.remove('open');
             tempSelectedItem = null;
+            editingCartItemIndex = null;
         }
 
         function confirmItemOptions() {
-            if (!tempSelectedItem) return;
+            // Coleta opções marcadas
             const checked = document.querySelectorAll('.option-checkbox:checked');
             const selectedValues = Array.from(checked).map(cb => cb.value);
             const optionsString = selectedValues.join(' + ');
-            addItemToCartFinal(tempSelectedItem, optionsString);
+
+            if (editingCartItemIndex !== null) {
+                // MODO EDIÇÃO: Atualiza item existente
+                editingOrderCart[editingCartItemIndex].selectedOption = optionsString;
+                renderEditOrderItems();
+                showToast("Opções atualizadas!");
+            } else if (tempSelectedItem) {
+                // MODO ADIÇÃO: Novo item
+                addItemToCartFinal(tempSelectedItem, optionsString);
+            }
+            
             closeOptionsModal();
+        }
+        
+        // NOVA FUNÇÃO: Abrir modal para editar opções de um item já no carrinho
+        function editItemOptions(index) {
+            const cartItem = editingOrderCart[index];
+            const originalItem = currentItems.find(i => i.id === cartItem.id);
+            
+            if (originalItem && originalItem.options && originalItem.options.length > 0) {
+                editingCartItemIndex = index; // Define qual item estamos editando
+                openOptionsModal(originalItem); // Abre o modal com as opções possíveis
+                
+                // Marca as opções que já estavam selecionadas
+                if (cartItem.selectedOption) {
+                    const currentOpts = cartItem.selectedOption.split(' + ');
+                    const checkboxes = document.querySelectorAll('.option-checkbox');
+                    checkboxes.forEach(cb => {
+                        if (currentOpts.includes(cb.value)) {
+                            cb.checked = true;
+                        }
+                    });
+                }
+            } else {
+                alert("Este item não possui opções configuradas no cardápio.");
+            }
         }
 
         function addItemToCartFinal(item, optionsText) {
@@ -1418,11 +1455,22 @@
             list.innerHTML = '';
             
             editingOrderCart.forEach((item, index) => {
-                // Exibição visual das opções
+                // Verifica se o item original tem opções para mostrar o botão de editar
+                const originalItem = currentItems.find(i => i.id === item.id);
+                const hasOptions = originalItem && originalItem.options && originalItem.options.length > 0;
+
+                // Exibição visual das opções com botão de editar
                 const optionsDisplay = item.selectedOption ? 
-                    `<div style="font-size:11px; color:var(--primary-dark); font-weight:700; background:#fff3cd; padding:2px 5px; border-radius:4px; display:inline-block; margin-top:4px;">
-                        <i class="fas fa-check"></i> ${item.selectedOption}
-                    </div>` : '';
+                    `<div style="display:flex; align-items:center; gap:5px; margin-top:4px;">
+                        <div style="font-size:11px; color:var(--primary-dark); font-weight:700; background:#fff3cd; padding:2px 6px; border-radius:4px;">
+                            <i class="fas fa-check"></i> ${item.selectedOption}
+                        </div>
+                        <button onclick="editItemOptions(${index})" style="background:none; border:none; cursor:pointer; color:#666; font-size:12px; padding:2px;"><i class="fas fa-pencil-alt"></i></button>
+                    </div>` 
+                    : (hasOptions ? 
+                        `<div style="margin-top:4px;">
+                            <button onclick="editItemOptions(${index})" style="background:#eee; border:none; border-radius:4px; cursor:pointer; color:#555; font-size:10px; padding:2px 6px; font-weight:600;">+ Opções</button>
+                         </div>` : '');
 
                 list.innerHTML += `
                     <div class="edit-order-item">
