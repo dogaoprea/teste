@@ -111,6 +111,15 @@
         .btn-filter[data-filter="cancelled"].active { background: var(--danger); color: white; border-color: #cc0000; }
         .btn-filter i { font-size: 16px; margin-bottom: 2px; }
 
+        /* Clientes */
+        .customer-card { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .customer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; margin-bottom: 5px; }
+        .customer-name { font-weight: 800; font-size: 16px; color: #333; }
+        .customer-phone { background: #e8f5e9; color: #25D366; padding: 4px 8px; border-radius: 50px; font-weight: 700; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+        .customer-info-row { font-size: 13px; color: #555; display: flex; gap: 8px; align-items: flex-start; }
+        .customer-info-row i { margin-top: 3px; color: #999; width: 16px; text-align: center; }
+        .customer-stats { font-size: 11px; color: #888; text-align: right; margin-top: 5px; }
+
         /* Status Select Ajustado */
         .status-select { 
             width: 100%; 
@@ -313,6 +322,7 @@
                 <button class="nav-tab active" onclick="switchTab('orders')"><i class="fas fa-receipt"></i> Pedidos</button>
                 <button class="nav-tab" onclick="switchTab('history')"><i class="fas fa-history"></i> Histórico</button>
                 <button class="nav-tab" onclick="switchTab('menu')"><i class="fas fa-hamburger"></i> Cardápio</button>
+                <button class="nav-tab" onclick="switchTab('customers')"><i class="fas fa-users"></i> Clientes</button>
                 <button class="nav-tab" onclick="switchTab('settings')"><i class="fas fa-cog"></i> Configurações</button>
             </div>
 
@@ -418,54 +428,53 @@
                 <div id="items-list"></div>
             </div>
 
+            <div id="tab-customers" class="tab-content">
+                <div class="card" style="position: sticky; top: 70px; z-index: 50; margin-bottom:15px;">
+                    <div style="position: relative;">
+                        <i class="fas fa-search" style="position: absolute; left: 12px; top: 12px; color: #888;"></i>
+                        <input type="text" id="customer-search" class="form-input" style="padding-left: 35px;" placeholder="Buscar por nome, telefone ou endereço..." onkeyup="renderCustomers(this.value)">
+                    </div>
+                </div>
+                <div id="customers-list-container">
+                    <!-- Lista de clientes será renderizada aqui -->
+                </div>
+            </div>
+
             <div id="tab-settings" class="tab-content">
-                <!-- Seção de Taxas -->
-                <div class="card">
-                    <h3 style="margin-top:0; color:var(--primary-dark);"><i class="fas fa-percent"></i> Taxas da Maquininha</h3>
-                    <p style="font-size:13px; color:#666; margin-bottom:20px;">Defina a porcentagem que será acrescida ao repassar a taxa para o cliente.</p>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Taxa Cartão de Crédito (%)</label>
-                        <div style="position:relative;">
-                            <input type="number" id="fee-credit" class="form-input" placeholder="Ex: 4.98" step="0.01">
-                            <i class="fas fa-percentage" style="position:absolute; right:15px; top:12px; color:#999;"></i>
+                
+                <!-- Menu Item: Taxas -->
+                <div class="card" onclick="openSettingsFeesModal()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding: 20px; transition: transform 0.2s;">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="background:#fff3e0; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--primary); font-size: 20px;">
+                            <i class="fas fa-percent"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin:0; font-size:16px; color:#333;">Taxas de Pagamento</h3>
+                            <small style="color:#888;">Configurar % da maquininha</small>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Taxa Cartão de Débito (%)</label>
-                        <div style="position:relative;">
-                            <input type="number" id="fee-debit" class="form-input" placeholder="Ex: 1.99" step="0.01">
-                            <i class="fas fa-percentage" style="position:absolute; right:15px; top:12px; color:#999;"></i>
+                    <i class="fas fa-chevron-right" style="color:#ddd;"></i>
+                </div>
+
+                <!-- Menu Item: Mensagens -->
+                <div class="card" onclick="openSettingsMessagesModal()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding: 20px; transition: transform 0.2s;">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="background:#e8f5e9; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#25D366; font-size: 20px;">
+                            <i class="fab fa-whatsapp"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin:0; font-size:16px; color:#333;">Mensagens Automáticas</h3>
+                            <small style="color:#888;">Textos de status do pedido</small>
                         </div>
                     </div>
-
-                    <button class="btn" style="background:var(--primary); width:100%; color:#000; padding:15px;" onclick="savePaymentFees()">Salvar Taxas</button>
+                    <i class="fas fa-chevron-right" style="color:#ddd;"></i>
                 </div>
 
-                <!-- Seção de Mensagens -->
-                <div class="card">
-                    <h3 style="margin-top:0; color:var(--primary-dark);"><i class="fab fa-whatsapp"></i> Mensagens de Status</h3>
-                    <p style="font-size:13px; color:#666; margin-bottom:20px;">Personalize o texto enviado no WhatsApp do cliente ao mudar o status.</p>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Saiu para Entrega (Delivery)</label>
-                        <textarea id="msg-delivering" class="form-input" rows="3" placeholder="Olá {nome}! Seu pedido saiu para entrega."></textarea>
-                        <small style="color:#999; font-size:11px;">Use <b>{nome}</b> para o nome do cliente.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pronto para Retirada (Balcão)</label>
-                        <textarea id="msg-ready" class="form-input" rows="3" placeholder="Olá {nome}! Seu pedido está pronto."></textarea>
-                        <small style="color:#999; font-size:11px;">Use <b>{nome}</b> para o nome do cliente.</small>
-                    </div>
-
-                    <button class="btn" style="background:#25D366; color:white; width:100%; padding:15px;" onclick="saveMessageTemplates()">Salvar Mensagens</button>
-                </div>
             </div>
         </div>
     </div>
 
+    <!-- ... MODAIS EXISTENTES (Item, Categoria, Pedido, etc) ... -->
     <div id="item-modal" class="modal">
         <div class="modal-content">
             <h2 id="modal-title" style="margin-top:0;">Item</h2>
@@ -698,6 +707,62 @@
         </div>
     </div>
 
+    <!-- NOVOS MODAIS DE CONFIGURAÇÃO -->
+    
+    <!-- Modal Taxas Config -->
+    <div id="settings-fees-modal" class="modal sub-modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Taxas da Maquininha</h3>
+            <p style="font-size:13px; color:#666; margin-bottom:20px;">Defina a porcentagem de acréscimo para o repasse.</p>
+            
+            <div class="form-group">
+                <label class="form-label">Taxa Cartão de Crédito (%)</label>
+                <div style="position:relative;">
+                    <input type="number" id="fee-credit" class="form-input" placeholder="Ex: 4.98" step="0.01">
+                    <i class="fas fa-percentage" style="position:absolute; right:15px; top:12px; color:#999;"></i>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Taxa Cartão de Débito (%)</label>
+                <div style="position:relative;">
+                    <input type="number" id="fee-debit" class="form-input" placeholder="Ex: 1.99" step="0.01">
+                    <i class="fas fa-percentage" style="position:absolute; right:15px; top:12px; color:#999;"></i>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn" style="background:#eee; flex:1;" onclick="closeSettingsFeesModal()">Cancelar</button>
+                <button class="btn" style="background:var(--primary); flex:1;" onclick="savePaymentFees()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mensagens Config -->
+    <div id="settings-messages-modal" class="modal sub-modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Mensagens de Status</h3>
+            <p style="font-size:13px; color:#666; margin-bottom:20px;">Personalize o texto enviado no WhatsApp.</p>
+            
+            <div class="form-group">
+                <label class="form-label">Saiu para Entrega (Delivery)</label>
+                <textarea id="msg-delivering" class="form-input" rows="3" placeholder="Olá {nome}! Seu pedido saiu para entrega."></textarea>
+                <small style="color:#999; font-size:11px;">Use <b>{nome}</b> para o nome do cliente.</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Pronto para Retirada (Balcão)</label>
+                <textarea id="msg-ready" class="form-input" rows="3" placeholder="Olá {nome}! Seu pedido está pronto."></textarea>
+                <small style="color:#999; font-size:11px;">Use <b>{nome}</b> para o nome do cliente.</small>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn" style="background:#eee; flex:1;" onclick="closeSettingsMessagesModal()">Cancelar</button>
+                <button class="btn" style="background:#25D366; color:white; flex:1;" onclick="saveMessageTemplates()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast"><i class="fas fa-check"></i> Salvo!</div>
 
     <script>
@@ -737,6 +802,8 @@
         let editingCartItemIndex = null; // NOVA: Índice do item sendo editado no carrinho
         
         let allOrders = []; 
+        let uniqueCustomers = []; // NOVA: Lista de clientes únicos
+        
         let currentFilter = 'all'; 
         let currentItemOptions = [];
         
@@ -780,6 +847,7 @@
             document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
             event.currentTarget.classList.add('active');
             if(tabId === 'history') renderHistoryList();
+            if(tabId === 'customers') renderCustomers();
         }
 
         // --- DADOS ---
@@ -831,19 +899,102 @@
             db.collection(COL_ORDERS).orderBy('timestamp', 'desc').limit(300).onSnapshot(snap => {
                 allOrders = [];
                 snap.forEach(doc => allOrders.push({ _id: doc.id, ...doc.data() }));
+                extractCustomersFromOrders();
                 renderOrders(); 
                 if(document.getElementById('tab-history').classList.contains('active')) renderHistoryList();
+                if(document.getElementById('tab-customers').classList.contains('active')) renderCustomers();
                 updateCustomerSuggestions(); 
             });
         }
         
+        // --- FUNÇÕES DE CLIENTES ---
+        function extractCustomersFromOrders() {
+            const custMap = new Map();
+            // Processa do mais recente para o mais antigo (porque allOrders é desc)
+            // Se encontrarmos o cliente pela primeira vez, guardamos os dados (serão os mais recentes).
+            // Se encontrarmos novamente (pedido mais antigo), apenas incrementamos o contador.
+            
+            allOrders.forEach(o => {
+                const phone = o.userPhone ? o.userPhone.replace(/\D/g,'') : '';
+                const name = o.customerName || 'Sem Nome';
+                const key = phone || name; // Chave primária: Telefone, senão Nome
+                
+                if (!custMap.has(key)) {
+                    custMap.set(key, {
+                        name: name,
+                        phone: phone,
+                        address: o.address,
+                        mapsLink: o.mapsLink,
+                        lastOrderDate: o.timestamp,
+                        count: 1
+                    });
+                } else {
+                    const c = custMap.get(key);
+                    c.count++;
+                }
+            });
+            uniqueCustomers = Array.from(custMap.values());
+        }
+
+        function renderCustomers(searchTerm = '') {
+            const container = document.getElementById('customers-list-container');
+            container.innerHTML = '';
+            
+            const term = searchTerm.toLowerCase();
+            const filtered = uniqueCustomers.filter(c => {
+                return c.name.toLowerCase().includes(term) || 
+                       (c.phone && c.phone.includes(term)) ||
+                       (c.address && c.address.toLowerCase().includes(term));
+            });
+
+            // Ordenar alfabeticamente
+            filtered.sort((a,b) => a.name.localeCompare(b.name));
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Nenhum cliente encontrado.</p>';
+                return;
+            }
+
+            filtered.forEach(c => {
+                let phoneHtml = '';
+                if(c.phone) {
+                    phoneHtml = `<a href="https://wa.me/55${c.phone}" target="_blank" class="customer-phone"><i class="fab fa-whatsapp"></i> ${c.phone}</a>`;
+                }
+
+                let mapsHtml = '';
+                if(c.mapsLink) {
+                    mapsHtml = `<a href="${c.mapsLink}" target="_blank" style="color:var(--primary); text-decoration:none; font-weight:600;"><i class="fas fa-map-marker-alt"></i> Mapa</a>`;
+                }
+
+                container.innerHTML += `
+                    <div class="customer-card">
+                        <div class="customer-header">
+                            <span class="customer-name">${c.name}</span>
+                            ${phoneHtml}
+                        </div>
+                        
+                        ${c.address ? `<div class="customer-info-row"><i class="fas fa-home"></i> <span>${c.address}</span></div>` : ''}
+                        
+                        ${mapsHtml ? `<div class="customer-info-row"><i class="fas fa-map"></i> ${mapsHtml}</div>` : ''}
+                        
+                        <div class="customer-stats">
+                            ${c.count} pedido(s) registrados recentemente
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
         // --- FUNÇÕES DE CONFIGURAÇÃO ---
         function savePaymentFees() {
             const c = parseFloat(document.getElementById('fee-credit').value) || 0;
             const d = parseFloat(document.getElementById('fee-debit').value) || 0;
             
             db.collection(COL_SETTINGS).doc('payment_fees').set({ credit: c, debit: d })
-              .then(() => showToast("Taxas salvas com sucesso!"))
+              .then(() => {
+                  showToast("Taxas salvas!");
+                  closeSettingsFeesModal(); // Fecha o modal
+              })
               .catch(e => alert("Erro ao salvar taxas: " + e.message));
         }
 
@@ -852,7 +1003,10 @@
             const rdy = document.getElementById('msg-ready').value;
             
             db.collection(COL_SETTINGS).doc('messages').set({ delivering: del, ready: rdy })
-              .then(() => showToast("Mensagens salvas!"))
+              .then(() => {
+                  showToast("Mensagens salvas!");
+                  closeSettingsMessagesModal(); // Fecha o modal
+              })
               .catch(e => alert("Erro: " + e.message));
         }
         
@@ -1755,6 +1909,14 @@
         }
         function toggleStoreStatus() { db.collection(COL_SETTINGS).doc('store').set({isOpen:document.getElementById('store-toggle').checked},{merge:true}); }
         function toggleManualOverride() { db.collection(COL_SETTINGS).doc('store').set({manualOverride:document.getElementById('manual-override').checked},{merge:true}); }
+        
+        // --- FUNÇÕES DOS NOVOS MODAIS DE CONFIGURAÇÃO ---
+        function openSettingsFeesModal() { document.getElementById('settings-fees-modal').classList.add('open'); }
+        function closeSettingsFeesModal() { document.getElementById('settings-fees-modal').classList.remove('open'); }
+        
+        function openSettingsMessagesModal() { document.getElementById('settings-messages-modal').classList.add('open'); }
+        function closeSettingsMessagesModal() { document.getElementById('settings-messages-modal').classList.remove('open'); }
+
         function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
     </script>
 </body>
