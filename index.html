@@ -103,6 +103,14 @@
         .btn-pay-paid { background: #00c851; color: white; }
         .btn-pay-pending { background: #ff4444; color: white; }
 
+        /* Botões de Filtro (Histórico) */
+        .btn-filter { flex: 1; padding: 10px 5px; border: 1px solid #e0e0e0; background: #f8f9fa; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; color: #555; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+        .btn-filter:hover { background: #e9ecef; }
+        .btn-filter.active { background: var(--primary); color: #222; border-color: var(--primary-dark); box-shadow: 0 2px 5px rgba(0,0,0,0.1); transform: translateY(-1px); }
+        .btn-filter[data-filter="done"].active { background: var(--success); color: white; border-color: #00a844; }
+        .btn-filter[data-filter="cancelled"].active { background: var(--danger); color: white; border-color: #cc0000; }
+        .btn-filter i { font-size: 16px; margin-bottom: 2px; }
+
         /* Status Select Ajustado */
         .status-select { 
             width: 100%; 
@@ -338,6 +346,22 @@
                         <small style="color:#888; font-size:11px; display:block; margin-top:4px;">
                             <i class="far fa-clock"></i> Filtra das 18h deste dia até as 04h do dia seguinte.
                         </small>
+                    </div>
+
+                    <!-- NOVO FILTRO DE STATUS (BOTÕES) -->
+                    <div style="margin-bottom:15px;">
+                        <label style="display:block; margin-bottom:5px; font-size:12px; font-weight:600; color:#555;">Exibir</label>
+                        <div class="filter-buttons" style="display:flex; gap:8px;">
+                            <button class="btn-filter active" onclick="setHistoryFilter('all')" data-filter="all">
+                                <i class="fas fa-list"></i> Todos
+                            </button>
+                            <button class="btn-filter" onclick="setHistoryFilter('done')" data-filter="done">
+                                <i class="fas fa-check-circle"></i> Concluídos
+                            </button>
+                            <button class="btn-filter" onclick="setHistoryFilter('cancelled')" data-filter="cancelled">
+                                <i class="fas fa-times-circle"></i> Cancelados
+                            </button>
+                        </div>
                     </div>
 
                     <div style="display:flex; gap:10px;">
@@ -722,6 +746,7 @@
             delivering: "Olá {nome}! 🛵💨 Seu pedido saiu para entrega.", 
             ready: "Olá {nome}! 🍔🥡 Seu pedido está pronto para retirada." 
         };
+        let historyStatusFilter = 'all';
 
         // --- AUTH ---
         function checkLogin() {
@@ -908,6 +933,15 @@
         // --- HISTÓRICO COM DATA DE REFERÊNCIA ---
         let historyRefDate = '';
 
+        function setHistoryFilter(status) {
+            historyStatusFilter = status;
+            document.querySelectorAll('.btn-filter').forEach(btn => {
+                btn.classList.remove('active');
+                if(btn.dataset.filter === status) btn.classList.add('active');
+            });
+            renderHistoryList();
+        }
+
         function applyHistoryFilter() {
             historyRefDate = document.getElementById('filter-ref-date').value;
             if (!historyRefDate) {
@@ -929,6 +963,11 @@
 
             let filteredOrders = allOrders.filter(order => order.status === 'done' || order.status === 'cancelled');
 
+            // APLICA FILTRO DE STATUS
+            if (historyStatusFilter !== 'all') {
+                filteredOrders = filteredOrders.filter(order => order.status === historyStatusFilter);
+            }
+
             if (historyRefDate) {
                 const start = new Date(historyRefDate + 'T18:00:00');
                 const end = new Date(historyRefDate + 'T04:00:00');
@@ -942,11 +981,13 @@
 
             let totalRev = 0, totalFees = 0, count = 0;
             filteredOrders.forEach(o => {
+                // Soma valores apenas se for Concluído
                 if(o.status === 'done') {
                     totalRev += (o.total || 0);
                     totalFees += (o.deliveryFee || 0);
-                    count++;
                 }
+                // Conta o item se ele estiver aparecendo na lista (filtrado)
+                count++;
             });
             
             document.getElementById('summary-total').innerText = `R$ ${totalRev.toFixed(2)}`;
@@ -954,7 +995,7 @@
             document.getElementById('summary-count').innerText = count;
 
             if (filteredOrders.length === 0) {
-                container.innerHTML = '<p style="text-align:center;color:#ccc;padding:20px;">Nenhum pedido encontrado neste período.</p>';
+                container.innerHTML = '<p style="text-align:center;color:#ccc;padding:20px;">Nenhum pedido encontrado com estes filtros.</p>';
                 return;
             }
             filteredOrders.forEach(order => container.appendChild(createOrderCard(order, true)));
