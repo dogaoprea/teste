@@ -1326,9 +1326,10 @@
             container.innerHTML = '';
 
             item.options.forEach((opt, idx) => {
+                // Alterado de type="checkbox" para type="radio" e adicionado name="option_selection"
                 container.innerHTML += `
                     <label style="display:flex; align-items:center; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                        <input type="checkbox" class="option-checkbox" value="${opt}" style="width:18px; height:18px; margin-right:10px;">
+                        <input type="radio" name="option_selection" class="option-checkbox" value="${opt}" style="width:18px; height:18px; margin-right:10px;">
                         <span style="font-weight:500;">${opt}</span>
                     </label>
                 `;
