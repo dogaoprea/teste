@@ -1619,6 +1619,32 @@
             
             editingOrderCart = (order.cart || []).map(i => ({ ...i, _uuid: i._uuid || Math.random() }));
             renderEditOrderItems();
+            toggleChangeInput(); 
+            document.getElementById('order-edit-modal').classList.add('open');
+        }
+
+        function closeOrderEditModal() { document.getElementById('order-edit-modal').classList.remove('open'); }
+        
+        function cycleOrderType() {
+            const types = ['Entrega', 'Retirada', 'Mesa'];
+            const current = document.getElementById('edit-order-type').value || 'Entrega';
+            let idx = types.indexOf(current);
+            if (idx === -1) idx = 0;
+            const next = types[(idx + 1) % types.length];
+            document.getElementById('edit-order-type').value = next;
+            updateTypeBtnUI();
+        }
+
+        function updateTypeBtnUI() {
+            const val = document.getElementById('edit-order-type').value;
+            const btn = document.getElementById('btn-order-type');
+            const icons = { 'Entrega': 'fa-motorcycle', 'Retirada': 'fa-shopping-bag', 'Mesa': 'fa-chair' };
+            const colors = { 'Entrega': '#ff9f1c', 'Retirada': '#2196F3', 'Mesa': '#4CAF50' };
+            btn.innerHTML = `<i class="fas ${icons[val] || 'fa-question'}"></i>`;
+            btn.style.background = colors[val] || '#ccc';
+            btn.style.color = '#fff';
+        }
+        
         // --- SELEÇÃO DE CARDÁPIO (ATUALIZADA COM CONTROLES + -) ---
         function openMenuSelectionModal() {
             const container = document.getElementById('menu-selection-list');
@@ -1974,162 +2000,15 @@
             if(methodDisplay) methodDisplay.innerText = method;
         }
 
-        function saveOrderChanges() {
-            const docId = document.getElementById('edit-order-doc-id').value;
-            const fee = parseFloat(document.getElementById('edit-order-fee').value) || 0;
-            const desc = parseFloat(document.getElementById('edit-order-discount').value) || 0;
-            const sur = parseFloat(document.getElementById('edit-order-surcharge').value) || 0;
-            const isPaid = document.getElementById('edit-is-paid').checked;
-            const sub = editingOrderCart.reduce((acc, i) => acc + (i.price * i.qty), 0);
-            const total = Math.max(0, sub + fee + sur - desc);
-            const changeVal = document.getElementById('edit-order-change').value;
-            const typeVal = document.getElementById('edit-order-type').value;
-
-            const data = {
-                customerName: document.getElementById('edit-order-name').value,
-                userPhone: document.getElementById('edit-order-phone').value,
-                type: typeVal,
-                payment: document.getElementById('edit-order-payment').value,
-                address: document.getElementById('edit-order-address').value,
-                cart: editingOrderCart,
-                deliveryFee: fee, discount: desc, surcharge: sur, 
-                isPaid: isPaid,
-                total: total,
-                change: changeVal
-            };
-            
-            const p = docId ? db.collection(COL_ORDERS).doc(docId).update(data) : 
-                db.collection(COL_ORDERS).add({
-                    ...data, 
-                    orderId: new Date().toLocaleTimeString('pt-BR',{hour12:false}).replace(/:/g,''),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'pending'
-                });
-            
-            p.then(() => { closeOrderEditModal(); showToast("Salvo!"); }).catch(e => alert(e));
-        }
-
-        function updateStatusText(d) {
-            const manual = d.manualOverride;
-            const open = d.isOpen;
-            document.getElementById('manual-override').checked = manual;
-            document.getElementById('store-toggle').checked = open;
-            
-            const controls = document.getElementById('manual-controls');
-            controls.style.display = manual ? 'block' : 'none';
-            
-            const textEl = document.getElementById('status-text');
-            if (manual) {
-                textEl.innerText = open ? 'Aberto (Manual)' : 'Fechado (Manual)';
-                textEl.style.color = open ? 'var(--success)' : 'var(--danger)';
-            } else {
-                textEl.innerText = 'Automático (Horário)';
-                textEl.style.color = '#666';
-            }
-        }
-
-        function renderList() {
-            const list = document.getElementById('items-list');
-            list.innerHTML = '';
-            
-            categoriesConfig.forEach(cat => {
-                let items = currentItems.filter(i => i.category === cat.id);
-                if(items.length) {
-                    items.sort((a,b) => a.name.localeCompare(b.name));
-                    list.innerHTML += `<div class="category-header">${cat.label}</div>`;
-                    items.forEach(i => {
-                        list.innerHTML += `
-                            <div class="admin-item ${i.available===false?'unavailable':''}">
-                                <div class="item-info">
-                                    <span class="item-name">${i.name}</span>
-                                    <span class="item-price">R$ ${i.price.toFixed(2)}</span>
-                                </div>
-                                <div>
-                                    <button class="btn btn-edit" onclick="openModal('${i.id}')"><i class="fas fa-pen"></i></button>
-                                    <button class="btn btn-delete" onclick="deleteItem('${i.id}')"><i class="fas fa-trash"></i></button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-            });
-        }
-
-        function openModal(id) {
-            const t = document.getElementById('item-modal');
-            const i = id ? currentItems.find(x=>x.id===id) : {name:'',price:'',category:'sanduiches',desc:'',options:[],available:true};
-            document.getElementById('edit-id').value = id||'';
-            document.getElementById('edit-name').value = i.name;
-            document.getElementById('edit-price').value = i.price;
-            document.getElementById('edit-desc').value = i.desc;
-            document.getElementById('edit-available').checked = i.available !== false;
-            currentItemOptions = i.options || [];
-            renderItemOptions();
-            updateCategorySelect();
-            document.getElementById('edit-category').value = i.category;
-            t.classList.add('open');
-        }
-        function closeModal() { document.getElementById('item-modal').classList.remove('open'); }
-        
-        function updateCategorySelect() {
-            const s = document.getElementById('edit-category'); s.innerHTML = '';
-            categoriesConfig.forEach(c => s.innerHTML += `<option value="${c.id}">${c.label}</option>`);
-        }
-        
-        function addOptionToItem() {
-            const v = document.getElementById('new-option-input').value;
-            if(v) { currentItemOptions.push(v); document.getElementById('new-option-input').value=''; renderItemOptions(); }
-        }
-        function renderItemOptions() {
-            document.getElementById('item-options-list').innerHTML = currentItemOptions.map((o,x) => 
-                `<span style="background:#eee;padding:4px 8px;border-radius:12px;font-size:12px;">${o} <span onclick="currentItemOptions.splice(${x},1);renderItemOptions()" style="cursor:pointer;color:red;">&times;</span></span>`
-            ).join('');
-        }
-        
-        function saveItem() {
-            const id = document.getElementById('edit-id').value;
-            const d = {
-                name: document.getElementById('edit-name').value,
-                price: parseFloat(document.getElementById('edit-price').value),
-                category: document.getElementById('edit-category').value,
-                desc: document.getElementById('edit-desc').value,
-                available: document.getElementById('edit-available').checked,
-                options: currentItemOptions
-            };
-            const p = id ? db.collection(COL_ITEMS).doc(id).update(d) : db.collection(COL_ITEMS).add(d);
-            p.then(()=>{ closeModal(); showToast("Item Salvo"); });
-        }
-        function deleteItem(id) { if(confirm("Excluir?")) db.collection(COL_ITEMS).doc(id).delete(); }
-
-        function openCategoryModal() {
-            const c = document.getElementById('cat-list-container'); c.innerHTML='';
-            categoriesConfig.forEach((cat, idx) => {
-                c.innerHTML += `
-                <div class="cat-edit-item">
-                    <button class="cat-move-btn" onclick="moveCategory(${idx},-1)">▲</button>
-                    <button class="cat-move-btn" onclick="moveCategory(${idx},1)">▼</button>
-                    <input class="form-input cat-lbl" value="${cat.label}" style="margin:0;">
-                </div>`;
-            });
-            document.getElementById('cat-modal').classList.add('open');
-        }
-        function closeCategoryModal() { document.getElementById('cat-modal').classList.remove('open'); }
-        function moveCategory(i, d) {
-            updateCatsTmp();
-            if(i+d >= 0 && i+d < categoriesConfig.length) {
-                [categoriesConfig[i], categoriesConfig[i+d]] = [categoriesConfig[i+d], categoriesConfig[i]];
-                openCategoryModal();
-            }
-        }
-        function updateCatsTmp() {
-            document.querySelectorAll('.cat-lbl').forEach((el,i) => categoriesConfig[i].label = el.value);
-        }
         function saveCategorySettings() {
             updateCatsTmp();
             db.collection(COL_SETTINGS).doc('categories').set({list:categoriesConfig}).then(()=>{closeCategoryModal(); showToast("Cats Salvas");});
         }
         function toggleStoreStatus() { db.collection(COL_SETTINGS).doc('store').set({isOpen:document.getElementById('store-toggle').checked},{merge:true}); }
         function toggleManualOverride() { db.collection(COL_SETTINGS).doc('store').set({manualOverride:document.getElementById('manual-override').checked},{merge:true}); }
+        function updateCatsTmp() {
+            document.querySelectorAll('.cat-lbl').forEach((el,i) => categoriesConfig[i].label = el.value);
+        }
         
         // --- FUNÇÕES DOS NOVOS MODAIS DE CONFIGURAÇÃO ---
         function openSettingsFeesModal() { document.getElementById('settings-fees-modal').classList.add('open'); }
