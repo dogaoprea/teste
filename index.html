@@ -1664,8 +1664,10 @@
                     container.innerHTML += `<div style="background:#f0f0f0; padding:8px 15px; font-weight:800; font-family:'Bebas Neue'; font-size:18px; color:#555;">${cat.label}</div>`;
                     
                     items.forEach(i => {
-                        // Conta quantos deste item já estão no carrinho
-                        const qty = editingOrderCart.filter(cartItem => cartItem.id === i.id).length;
+                        // CORREÇÃO: Conta a quantidade total somando as propriedades .qty
+                        const qty = editingOrderCart
+                            .filter(cartItem => cartItem.id === i.id)
+                            .reduce((sum, cartItem) => sum + cartItem.qty, 0);
                         
                         // REMOVIDO: Preço
                         // ADICIONADO: Controles de Quantidade
@@ -1693,7 +1695,7 @@
 
         function adjustMenuQty(id, delta) {
             if (delta < 0) {
-                // Remover item (lógica LIFO - Last In First Out para remover o último adicionado desse tipo)
+                // CORREÇÃO: Decrementa quantidade ou remove se for 1 (LIFO)
                 let targetIdx = -1;
                 for (let i = editingOrderCart.length - 1; i >= 0; i--) {
                     if (editingOrderCart[i].id === id) {
@@ -1703,7 +1705,12 @@
                 }
 
                 if (targetIdx !== -1) {
-                    editingOrderCart.splice(targetIdx, 1);
+                    if (editingOrderCart[targetIdx].qty > 1) {
+                        editingOrderCart[targetIdx].qty--;
+                    } else {
+                        editingOrderCart.splice(targetIdx, 1);
+                    }
+                    
                     renderEditOrderItems(); // Atualiza carrinho principal
                     renderMenuSelectionList(); // Atualiza contadores na lista
                     showToast("Item removido");
@@ -1799,15 +1806,27 @@
         }
 
         function addItemToCartFinal(item, optionsText) {
-            editingOrderCart.push({
-                id: item.id, 
-                name: item.name, 
-                price: item.price, 
-                qty: 1, 
-                obs: '', 
-                selectedOption: optionsText, 
-                _uuid: Math.random()
-            });
+            // CORREÇÃO: Verifica se já existe item igual (mesmo ID, Opções e sem Obs) para agrupar
+            const existingIndex = editingOrderCart.findIndex(i => 
+                i.id === item.id && 
+                i.selectedOption === optionsText && 
+                (!i.obs || i.obs.trim() === '') 
+            );
+
+            if (existingIndex !== -1) {
+                editingOrderCart[existingIndex].qty++;
+            } else {
+                editingOrderCart.push({
+                    id: item.id, 
+                    name: item.name, 
+                    price: item.price, 
+                    qty: 1, 
+                    obs: '', 
+                    selectedOption: optionsText, 
+                    _uuid: Math.random()
+                });
+            }
+            
             renderEditOrderItems();
             showToast(`+1 ${item.name}`);
             
