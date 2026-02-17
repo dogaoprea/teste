@@ -63,9 +63,6 @@
             font-family: 'Bebas Neue'; 
             font-size: 18px; 
             color: #666; 
-            /* position: sticky; removido para não fixar no topo */
-            /* top: 0; removido */
-            /* z-index: 5; removido */
             border-bottom: 1px solid #e0e0e0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -498,7 +495,7 @@
                         <label style="display:block; margin-bottom:5px; font-size:12px; font-weight:600; color:#555;">Data do Expediente</label>
                         <input type="date" id="filter-ref-date" class="form-input">
                         <small style="color:#888; font-size:11px; display:block; margin-top:4px;">
-                            <i class="far fa-clock"></i> Filtra das 18h deste dia até as 04h do dia seguinte.
+                            <i class="far fa-clock"></i> O filtro considera o horário de início e fim configurado.
                         </small>
                     </div>
 
@@ -609,6 +606,20 @@
                         <div>
                             <h3 style="margin:0; font-size:16px; color:#333;">Mensagens Automáticas</h3>
                             <small style="color:#888;">Textos de status do pedido</small>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:#ddd;"></i>
+                </div>
+
+                <!-- Menu Item: Horário Expediente (NOVO) -->
+                <div class="card" onclick="openSettingsHoursModal()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding: 20px; transition: transform 0.2s;">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="background:#e3f2fd; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#1976D2; font-size: 20px;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin:0; font-size:16px; color:#333;">Horário de Expediente</h3>
+                            <small style="color:#888;">Define o turno para o histórico</small>
                         </div>
                     </div>
                     <i class="fas fa-chevron-right" style="color:#ddd;"></i>
@@ -907,6 +918,30 @@
         </div>
     </div>
 
+    <!-- Modal Horario Config (NOVO) -->
+    <div id="settings-hours-modal" class="modal sub-modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Horário de Expediente</h3>
+            <p style="font-size:13px; color:#666; margin-bottom:20px;">Define o intervalo de horas considerado para o filtro de data no Histórico.</p>
+            
+            <div class="form-group">
+                <label class="form-label">Início do Turno</label>
+                <input type="time" id="setting-start-time" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Fim do Turno</label>
+                <input type="time" id="setting-end-time" class="form-input">
+                <small style="color:#888;">Se for menor que o início, considera o dia seguinte.</small>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn" style="background:#eee; flex:1;" onclick="closeSettingsHoursModal()">Cancelar</button>
+                <button class="btn" style="background:var(--primary); flex:1;" onclick="saveHistoryConfig()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast"><i class="fas fa-check"></i> Salvo!</div>
 
     <script>
@@ -957,6 +992,8 @@
             delivering: "Olá {nome}! 🛵💨 Seu pedido saiu para entrega.", 
             ready: "Olá {nome}! 🍔🥡 Seu pedido está pronto para retirada." 
         };
+        let configShiftStart = "18:00"; // Padrão
+        let configShiftEnd = "04:00";   // Padrão
         let historyStatusFilter = 'all';
 
         // --- AUTH ---
@@ -1056,6 +1093,19 @@
                 const msgReady = document.getElementById('msg-ready');
                 if(msgDel) msgDel.value = msgTemplates.delivering;
                 if(msgReady) msgReady.value = msgTemplates.ready;
+            });
+
+            // Carrega configurações de horário
+            db.collection(COL_SETTINGS).doc('history_config').onSnapshot(doc => {
+                if(doc.exists) {
+                    const data = doc.data();
+                    if (data.start) configShiftStart = data.start;
+                    if (data.end) configShiftEnd = data.end;
+                }
+                const inStart = document.getElementById('setting-start-time');
+                const inEnd = document.getElementById('setting-end-time');
+                if(inStart) inStart.value = configShiftStart;
+                if(inEnd) inEnd.value = configShiftEnd;
             });
 
             db.collection(COL_SETTINGS).doc('categories').onSnapshot(doc => {
@@ -1182,6 +1232,20 @@
               })
               .catch(e => alert("Erro: " + e.message));
         }
+
+        function saveHistoryConfig() {
+            const s = document.getElementById('setting-start-time').value;
+            const e = document.getElementById('setting-end-time').value;
+            
+            if(!s || !e) return alert("Preencha ambos os horários");
+
+            db.collection(COL_SETTINGS).doc('history_config').set({ start: s, end: e })
+              .then(() => {
+                  showToast("Horário salvo!");
+                  closeSettingsHoursModal();
+              })
+              .catch(e => alert("Erro: " + e.message));
+        }
         
         // --- SUGESTÃO DE CLIENTES ---
         function updateCustomerSuggestions() {
@@ -1296,9 +1360,17 @@
             }
 
             if (historyRefDate) {
-                const start = new Date(historyRefDate + 'T18:00:00');
-                const end = new Date(historyRefDate + 'T04:00:00');
-                end.setDate(end.getDate() + 1);
+                // USA OS HORÁRIOS CONFIGURADOS
+                const sTime = configShiftStart || "18:00";
+                const eTime = configShiftEnd || "04:00";
+
+                const start = new Date(`${historyRefDate}T${sTime}:00`);
+                let end = new Date(`${historyRefDate}T${eTime}:00`);
+
+                // Se o horário final for menor que o inicial (ex: 04:00 < 18:00), significa dia seguinte
+                if (eTime < sTime) {
+                    end.setDate(end.getDate() + 1);
+                }
 
                 filteredOrders = filteredOrders.filter(order => {
                     const d = order.timestamp ? new Date(order.timestamp.seconds * 1000) : new Date(0);
@@ -2036,6 +2108,9 @@
         
         function openSettingsMessagesModal() { document.getElementById('settings-messages-modal').classList.add('open'); }
         function closeSettingsMessagesModal() { document.getElementById('settings-messages-modal').classList.remove('open'); }
+
+        function openSettingsHoursModal() { document.getElementById('settings-hours-modal').classList.add('open'); }
+        function closeSettingsHoursModal() { document.getElementById('settings-hours-modal').classList.remove('open'); }
 
         function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
     </script>
