@@ -55,98 +55,6 @@
         .sidebar-item.active { background: #fff8e1; color: var(--primary-dark); border-left-color: var(--primary); }
         .sidebar-item i { width: 24px; text-align: center; font-size: 18px; }
 
-        /* --- NOVO ESTILO: LISTA DO CARDÁPIO (MODAL) --- */
-        .menu-category-title {
-            background: #f5f5f5; 
-            padding: 10px 15px; 
-            font-weight: 800; 
-            font-family: 'Bebas Neue'; 
-            font-size: 18px; 
-            color: #666; 
-            border-bottom: 1px solid #e0e0e0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .menu-list {
-            display: flex;
-            flex-direction: column;
-            padding-bottom: 20px;
-        }
-
-        .menu-item-row {
-            background: white;
-            border-bottom: 1px solid #eee;
-            padding: 12px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .menu-item-info {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .menu-item-name {
-            font-weight: 600;
-            font-size: 15px;
-            color: #333;
-            line-height: 1.2;
-        }
-
-        .menu-item-price {
-            font-weight: 700;
-            color: var(--primary-dark);
-            font-size: 15px;
-            white-space: nowrap;
-            background: #fff8e1;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        /* Controle de Quantidade (+ -) */
-        .qty-control-box {
-            display: flex;
-            align-items: center;
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 3px;
-            border: 1px solid #e0e0e0;
-            flex-shrink: 0;
-        }
-
-        .btn-qty-menu {
-            width: 32px;
-            height: 32px;
-            border: none;
-            background: white;
-            border-radius: 6px;
-            font-weight: 800;
-            font-size: 16px;
-            color: var(--success);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.1s;
-        }
-        .btn-qty-menu:active { transform: scale(0.95); background: #eee; }
-        .btn-qty-menu.minus { color: #d32f2f; }
-
-        .qty-menu-display {
-            min-width: 32px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 16px;
-            color: #333;
-        }
-
         /* Responsividade */
         @media (max-width: 768px) {
             .nav-tabs { display: none; } /* Esconde abas no mobile */
@@ -494,8 +402,8 @@
                     <div style="margin-bottom:15px;">
                         <label style="display:block; margin-bottom:5px; font-size:12px; font-weight:600; color:#555;">Data do Expediente</label>
                         <input type="date" id="filter-ref-date" class="form-input">
-                        <small style="color:#888; font-size:11px; display:block; margin-top:4px;">
-                            <i class="far fa-clock"></i> O filtro considera o horário de início e fim configurado.
+                        <small id="history-filter-desc" style="color:#888; font-size:11px; display:block; margin-top:4px;">
+                            <i class="far fa-clock"></i> Filtra das 18:00 até as 04:00.
                         </small>
                     </div>
 
@@ -611,15 +519,15 @@
                     <i class="fas fa-chevron-right" style="color:#ddd;"></i>
                 </div>
 
-                <!-- Menu Item: Horário Expediente (NOVO) -->
-                <div class="card" onclick="openSettingsHoursModal()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding: 20px; transition: transform 0.2s;">
+                 <!-- Menu Item: Horário Expediente -->
+                 <div class="card" onclick="openSettingsHoursModal()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding: 20px; transition: transform 0.2s;">
                     <div style="display:flex; align-items:center; gap:15px;">
-                        <div style="background:#e3f2fd; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#1976D2; font-size: 20px;">
-                            <i class="fas fa-clock"></i>
+                        <div style="background:#e3f2fd; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2196F3; font-size: 20px;">
+                            <i class="far fa-clock"></i>
                         </div>
                         <div>
                             <h3 style="margin:0; font-size:16px; color:#333;">Horário de Expediente</h3>
-                            <small style="color:#888;">Define o turno para o histórico</small>
+                            <small style="color:#888;">Configurar filtro do histórico</small>
                         </div>
                     </div>
                     <i class="fas fa-chevron-right" style="color:#ddd;"></i>
@@ -918,26 +826,28 @@
         </div>
     </div>
 
-    <!-- Modal Horario Config (NOVO) -->
+    <!-- Novo Modal Horario Expediente -->
     <div id="settings-hours-modal" class="modal sub-modal">
         <div class="modal-content">
             <h3 style="margin-top:0;">Horário de Expediente</h3>
-            <p style="font-size:13px; color:#666; margin-bottom:20px;">Define o intervalo de horas considerado para o filtro de data no Histórico.</p>
+            <p style="font-size:13px; color:#666; margin-bottom:20px;">
+                Configura o filtro do histórico. <br>
+                <b style="color:var(--primary-dark);">Nota:</b> Se o fim for menor ou igual ao início, o sistema considera que é no dia seguinte.
+            </p>
             
             <div class="form-group">
-                <label class="form-label">Início do Turno</label>
-                <input type="time" id="setting-start-time" class="form-input">
+                <label class="form-label">Horário de Início</label>
+                <input type="time" id="shift-start" class="form-input">
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label">Fim do Turno</label>
-                <input type="time" id="setting-end-time" class="form-input">
-                <small style="color:#888;">Se for menor que o início, considera o dia seguinte.</small>
+                <label class="form-label">Horário de Término</label>
+                <input type="time" id="shift-end" class="form-input">
             </div>
 
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn" style="background:#eee; flex:1;" onclick="closeSettingsHoursModal()">Cancelar</button>
-                <button class="btn" style="background:var(--primary); flex:1;" onclick="saveHistoryConfig()">Salvar</button>
+                <button class="btn" style="background:var(--primary); flex:1;" onclick="saveShiftHours()">Salvar</button>
             </div>
         </div>
     </div>
@@ -992,8 +902,10 @@
             delivering: "Olá {nome}! 🛵💨 Seu pedido saiu para entrega.", 
             ready: "Olá {nome}! 🍔🥡 Seu pedido está pronto para retirada." 
         };
-        let configShiftStart = "18:00"; // Padrão
-        let configShiftEnd = "04:00";   // Padrão
+        // Horário Padrão (será sobrescrito pelo banco)
+        let shiftStart = "18:00";
+        let shiftEnd = "04:00";
+
         let historyStatusFilter = 'all';
 
         // --- AUTH ---
@@ -1094,18 +1006,22 @@
                 if(msgDel) msgDel.value = msgTemplates.delivering;
                 if(msgReady) msgReady.value = msgTemplates.ready;
             });
-
-            // Carrega configurações de horário
-            db.collection(COL_SETTINGS).doc('history_config').onSnapshot(doc => {
+            
+            // Carrega o Horário de Expediente
+            db.collection(COL_SETTINGS).doc('hours').onSnapshot(doc => {
                 if(doc.exists) {
                     const data = doc.data();
-                    if (data.start) configShiftStart = data.start;
-                    if (data.end) configShiftEnd = data.end;
+                    if(data.start) shiftStart = data.start;
+                    if(data.end) shiftEnd = data.end;
                 }
-                const inStart = document.getElementById('setting-start-time');
-                const inEnd = document.getElementById('setting-end-time');
-                if(inStart) inStart.value = configShiftStart;
-                if(inEnd) inEnd.value = configShiftEnd;
+                // Atualiza inputs
+                const inStart = document.getElementById('shift-start');
+                const inEnd = document.getElementById('shift-end');
+                if(inStart) inStart.value = shiftStart;
+                if(inEnd) inEnd.value = shiftEnd;
+
+                // Atualiza texto de ajuda no Histórico
+                updateHistoryFilterText();
             });
 
             db.collection(COL_SETTINGS).doc('categories').onSnapshot(doc => {
@@ -1128,6 +1044,13 @@
                 if(document.getElementById('tab-customers').classList.contains('active')) renderCustomers();
                 updateCustomerSuggestions(); 
             });
+        }
+        
+        function updateHistoryFilterText() {
+            const el = document.getElementById('history-filter-desc');
+            if(el) {
+                el.innerHTML = `<i class="far fa-clock"></i> Filtra das ${shiftStart} até as ${shiftEnd} (conforme Configurações).`;
+            }
         }
         
         // --- FUNÇÕES DE CLIENTES ---
@@ -1232,19 +1155,20 @@
               })
               .catch(e => alert("Erro: " + e.message));
         }
-
-        function saveHistoryConfig() {
-            const s = document.getElementById('setting-start-time').value;
-            const e = document.getElementById('setting-end-time').value;
+        
+        function saveShiftHours() {
+            const s = document.getElementById('shift-start').value;
+            const e = document.getElementById('shift-end').value;
             
-            if(!s || !e) return alert("Preencha ambos os horários");
-
-            db.collection(COL_SETTINGS).doc('history_config').set({ start: s, end: e })
+            if(!s || !e) return alert("Preencha ambos os horários.");
+            
+            db.collection(COL_SETTINGS).doc('hours').set({ start: s, end: e })
               .then(() => {
                   showToast("Horário salvo!");
                   closeSettingsHoursModal();
+                  // A UI atualizará via onSnapshot
               })
-              .catch(e => alert("Erro: " + e.message));
+              .catch(err => alert("Erro ao salvar: " + err.message));
         }
         
         // --- SUGESTÃO DE CLIENTES ---
@@ -1360,15 +1284,16 @@
             }
 
             if (historyRefDate) {
-                // USA OS HORÁRIOS CONFIGURADOS
-                const sTime = configShiftStart || "18:00";
-                const eTime = configShiftEnd || "04:00";
-
-                const start = new Date(`${historyRefDate}T${sTime}:00`);
-                let end = new Date(`${historyRefDate}T${eTime}:00`);
-
-                // Se o horário final for menor que o inicial (ex: 04:00 < 18:00), significa dia seguinte
-                if (eTime < sTime) {
+                // Monta Data Inicio e Fim baseada nas configurações
+                // Ex: Ref 2023-10-25 + Start 18:00
+                const start = new Date(historyRefDate + 'T' + shiftStart + ':00');
+                
+                // Ex: Ref 2023-10-25 + End 04:00
+                // Se End (04:00) <= Start (18:00), significa dia seguinte
+                let end = new Date(historyRefDate + 'T' + shiftEnd + ':00');
+                
+                // Lógica de "Virada de dia"
+                if (shiftEnd <= shiftStart) {
                     end.setDate(end.getDate() + 1);
                 }
 
@@ -1717,7 +1642,7 @@
             btn.style.color = '#fff';
         }
         
-        // --- SELEÇÃO DE CARDÁPIO (ATUALIZADA COM CONTROLES + -) ---
+        // --- SELEÇÃO DE CARDÁPIO (ATUALIZADA COM OPÇÕES) ---
         function openMenuSelectionModal() {
             const container = document.getElementById('menu-selection-list');
             container.innerHTML = '';
@@ -1728,91 +1653,22 @@
                 const items = activeItems.filter(i => i.category === cat.id);
                 if (items.length) {
                     items.sort((a,b) => a.name.localeCompare(b.name));
-                    
-                    // Título da Categoria
-                    container.innerHTML += `<div class="menu-category-title">${cat.label}</div>`;
-                    
-                    // Container Lista
-                    let listHtml = '<div class="menu-list">';
+                    container.innerHTML += `<div style="background:#f0f0f0; padding:8px 15px; font-weight:800; font-family:'Bebas Neue'; font-size:18px; color:#555; position:sticky; top:0;">${cat.label}</div>`;
                     
                     items.forEach(i => {
-                        listHtml += `
-                            <div class="menu-item-row">
-                                <div class="menu-item-info">
-                                    <span class="menu-item-name">${i.name}</span>
-                                    <!-- Preço removido conforme solicitado -->
-                                </div>
-                                <div class="qty-control-box">
-                                    <button class="btn-qty-menu minus" onclick="changeMenuQty('${i.id}', -1)">-</button>
-                                    <span class="qty-menu-display" id="menu-qty-${i.id}">0</span>
-                                    <button class="btn-qty-menu plus" onclick="changeMenuQty('${i.id}', 1)">+</button>
-                                </div>
+                        container.innerHTML += `
+                            <div onclick="selectMenuItem('${i.id}')" style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:white;">
+                                <span style="font-weight:600; font-size:15px;">${i.name}</span>
+                                <span style="font-weight:700; color:var(--primary-dark);">R$ ${i.price.toFixed(2)}</span>
                             </div>
                         `;
                     });
-                    
-                    listHtml += '</div>'; // Fecha lista
-                    container.innerHTML += listHtml;
                 }
             });
-            
-            updateMenuModalQuantities(); // Atualiza os contadores ao abrir
             document.getElementById('menu-selection-modal').classList.add('open');
         }
 
         function closeMenuSelectionModal() { document.getElementById('menu-selection-modal').classList.remove('open'); }
-
-        // Lógica dos botões + e - no modal de cardápio
-        function changeMenuQty(itemId, delta) {
-            if (delta > 0) {
-                // Adicionar (+): Chama o fluxo normal que verifica opções
-                selectMenuItem(itemId);
-            } else {
-                // Remover (-): Decrementa a quantidade do último item correspondente encontrado
-                let indexToUpdate = -1;
-                
-                // Procura de trás para frente para mexer no item mais recente adicionado desse tipo
-                for (let i = editingOrderCart.length - 1; i >= 0; i--) {
-                    if (editingOrderCart[i].id === itemId) {
-                        indexToUpdate = i;
-                        break;
-                    }
-                }
-                
-                if (indexToUpdate !== -1) {
-                    const item = editingOrderCart[indexToUpdate];
-                    if (item.qty > 1) {
-                        item.qty -= 1; // Decrementa se tiver mais de 1
-                    } else {
-                        editingOrderCart.splice(indexToUpdate, 1); // Remove se for o último
-                    }
-                    renderEditOrderItems();
-                    updateMenuModalQuantities();
-                }
-            }
-        }
-
-        // Atualiza visualmente os números entre os botões
-        function updateMenuModalQuantities() {
-            // Conta quantos de cada ID estão no carrinho
-            const counts = {};
-            editingOrderCart.forEach(item => {
-                if (item.id) {
-                    counts[item.id] = (counts[item.id] || 0) + item.qty;
-                }
-            });
-
-            // Reseta todos para 0
-            document.querySelectorAll('.qty-menu-display').forEach(el => el.innerText = '0');
-
-            // Atualiza os que têm quantidade
-            for (const [id, qty] of Object.entries(counts)) {
-                const display = document.getElementById(`menu-qty-${id}`);
-                if (display) {
-                    display.innerText = qty;
-                }
-            }
-        }
 
         function selectMenuItem(id) {
             const item = currentItems.find(i => i.id === id);
@@ -1860,8 +1716,7 @@
             const optionsString = selectedValues.join(' + ');
 
             if (editingCartItemIndex !== null) {
-                // MODO EDIÇÃO: Atualiza item existente (sobrescreve opções)
-                // Nota: Ao editar, se o resultado for igual a outro item existente, não mesclamos automaticamente aqui para não confundir o usuário que está editando uma linha específica.
+                // MODO EDIÇÃO: Atualiza item existente
                 editingOrderCart[editingCartItemIndex].selectedOption = optionsString;
                 renderEditOrderItems();
                 showToast("Opções atualizadas!");
@@ -1898,31 +1753,17 @@
         }
 
         function addItemToCartFinal(item, optionsText) {
-            // Verifica se já existe um item igual (mesmo ID e mesmas opções)
-            const existingIndex = editingOrderCart.findIndex(cartItem => 
-                cartItem.id === item.id && cartItem.selectedOption === optionsText
-            );
-
-            if (existingIndex !== -1) {
-                // Se existe, apenas incrementa a quantidade
-                editingOrderCart[existingIndex].qty += 1;
-                // Efeito visual opcional para indicar atualização
-            } else {
-                // Se não existe, adiciona como novo item
-                editingOrderCart.push({
-                    id: item.id, 
-                    name: item.name, 
-                    price: item.price, 
-                    qty: 1, 
-                    obs: '', 
-                    selectedOption: optionsText, 
-                    _uuid: Math.random()
-                });
-            }
-
+            editingOrderCart.push({
+                id: item.id, 
+                name: item.name, 
+                price: item.price, 
+                qty: 1, 
+                obs: '', 
+                selectedOption: optionsText, 
+                _uuid: Math.random()
+            });
             renderEditOrderItems();
-            updateMenuModalQuantities(); // Atualiza a quantidade na lista imediatamente
-            // showToast(`+1 ${item.name}`); // Feedback visual já está no contador
+            showToast(`+1 ${item.name}`);
         }
 
         // --- CUSTOM ITEM & PAGAMENTO ---
@@ -2033,19 +1874,9 @@
             editingOrderCart[idx].qty += chg;
             if(editingOrderCart[idx].qty <= 0) editingOrderCart.splice(idx, 1);
             renderEditOrderItems();
-            // Se o modal de menu estiver aberto no fundo, atualiza os contadores dele também
-            if (document.getElementById('menu-selection-modal').classList.contains('open')) {
-                updateMenuModalQuantities();
-            }
         }
         function removeOrderItem(idx) {
-            if(confirm("Remover?")) { 
-                editingOrderCart.splice(idx, 1); 
-                renderEditOrderItems(); 
-                if (document.getElementById('menu-selection-modal').classList.contains('open')) {
-                    updateMenuModalQuantities();
-                }
-            }
+            if(confirm("Remover?")) { editingOrderCart.splice(idx, 1); renderEditOrderItems(); }
         }
 
         // --- CALCULATE FUNCTION WITH AUTO FEE ---
@@ -2092,15 +1923,162 @@
             if(methodDisplay) methodDisplay.innerText = method;
         }
 
+        function saveOrderChanges() {
+            const docId = document.getElementById('edit-order-doc-id').value;
+            const fee = parseFloat(document.getElementById('edit-order-fee').value) || 0;
+            const desc = parseFloat(document.getElementById('edit-order-discount').value) || 0;
+            const sur = parseFloat(document.getElementById('edit-order-surcharge').value) || 0;
+            const isPaid = document.getElementById('edit-is-paid').checked;
+            const sub = editingOrderCart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+            const total = Math.max(0, sub + fee + sur - desc);
+            const changeVal = document.getElementById('edit-order-change').value;
+            const typeVal = document.getElementById('edit-order-type').value;
+
+            const data = {
+                customerName: document.getElementById('edit-order-name').value,
+                userPhone: document.getElementById('edit-order-phone').value,
+                type: typeVal,
+                payment: document.getElementById('edit-order-payment').value,
+                address: document.getElementById('edit-order-address').value,
+                cart: editingOrderCart,
+                deliveryFee: fee, discount: desc, surcharge: sur, 
+                isPaid: isPaid,
+                total: total,
+                change: changeVal
+            };
+            
+            const p = docId ? db.collection(COL_ORDERS).doc(docId).update(data) : 
+                db.collection(COL_ORDERS).add({
+                    ...data, 
+                    orderId: new Date().toLocaleTimeString('pt-BR',{hour12:false}).replace(/:/g,''),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'pending'
+                });
+            
+            p.then(() => { closeOrderEditModal(); showToast("Salvo!"); }).catch(e => alert(e));
+        }
+
+        function updateStatusText(d) {
+            const manual = d.manualOverride;
+            const open = d.isOpen;
+            document.getElementById('manual-override').checked = manual;
+            document.getElementById('store-toggle').checked = open;
+            
+            const controls = document.getElementById('manual-controls');
+            controls.style.display = manual ? 'block' : 'none';
+            
+            const textEl = document.getElementById('status-text');
+            if (manual) {
+                textEl.innerText = open ? 'Aberto (Manual)' : 'Fechado (Manual)';
+                textEl.style.color = open ? 'var(--success)' : 'var(--danger)';
+            } else {
+                textEl.innerText = 'Automático (Horário)';
+                textEl.style.color = '#666';
+            }
+        }
+
+        function renderList() {
+            const list = document.getElementById('items-list');
+            list.innerHTML = '';
+            
+            categoriesConfig.forEach(cat => {
+                let items = currentItems.filter(i => i.category === cat.id);
+                if(items.length) {
+                    items.sort((a,b) => a.name.localeCompare(b.name));
+                    list.innerHTML += `<div class="category-header">${cat.label}</div>`;
+                    items.forEach(i => {
+                        list.innerHTML += `
+                            <div class="admin-item ${i.available===false?'unavailable':''}">
+                                <div class="item-info">
+                                    <span class="item-name">${i.name}</span>
+                                    <span class="item-price">R$ ${i.price.toFixed(2)}</span>
+                                </div>
+                                <div>
+                                    <button class="btn btn-edit" onclick="openModal('${i.id}')"><i class="fas fa-pen"></i></button>
+                                    <button class="btn btn-delete" onclick="deleteItem('${i.id}')"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        }
+
+        function openModal(id) {
+            const t = document.getElementById('item-modal');
+            const i = id ? currentItems.find(x=>x.id===id) : {name:'',price:'',category:'sanduiches',desc:'',options:[],available:true};
+            document.getElementById('edit-id').value = id||'';
+            document.getElementById('edit-name').value = i.name;
+            document.getElementById('edit-price').value = i.price;
+            document.getElementById('edit-desc').value = i.desc;
+            document.getElementById('edit-available').checked = i.available !== false;
+            currentItemOptions = i.options || [];
+            renderItemOptions();
+            updateCategorySelect();
+            document.getElementById('edit-category').value = i.category;
+            t.classList.add('open');
+        }
+        function closeModal() { document.getElementById('item-modal').classList.remove('open'); }
+        
+        function updateCategorySelect() {
+            const s = document.getElementById('edit-category'); s.innerHTML = '';
+            categoriesConfig.forEach(c => s.innerHTML += `<option value="${c.id}">${c.label}</option>`);
+        }
+        
+        function addOptionToItem() {
+            const v = document.getElementById('new-option-input').value;
+            if(v) { currentItemOptions.push(v); document.getElementById('new-option-input').value=''; renderItemOptions(); }
+        }
+        function renderItemOptions() {
+            document.getElementById('item-options-list').innerHTML = currentItemOptions.map((o,x) => 
+                `<span style="background:#eee;padding:4px 8px;border-radius:12px;font-size:12px;">${o} <span onclick="currentItemOptions.splice(${x},1);renderItemOptions()" style="cursor:pointer;color:red;">&times;</span></span>`
+            ).join('');
+        }
+        
+        function saveItem() {
+            const id = document.getElementById('edit-id').value;
+            const d = {
+                name: document.getElementById('edit-name').value,
+                price: parseFloat(document.getElementById('edit-price').value),
+                category: document.getElementById('edit-category').value,
+                desc: document.getElementById('edit-desc').value,
+                available: document.getElementById('edit-available').checked,
+                options: currentItemOptions
+            };
+            const p = id ? db.collection(COL_ITEMS).doc(id).update(d) : db.collection(COL_ITEMS).add(d);
+            p.then(()=>{ closeModal(); showToast("Item Salvo"); });
+        }
+        function deleteItem(id) { if(confirm("Excluir?")) db.collection(COL_ITEMS).doc(id).delete(); }
+
+        function openCategoryModal() {
+            const c = document.getElementById('cat-list-container'); c.innerHTML='';
+            categoriesConfig.forEach((cat, idx) => {
+                c.innerHTML += `
+                <div class="cat-edit-item">
+                    <button class="cat-move-btn" onclick="moveCategory(${idx},-1)">▲</button>
+                    <button class="cat-move-btn" onclick="moveCategory(${idx},1)">▼</button>
+                    <input class="form-input cat-lbl" value="${cat.label}" style="margin:0;">
+                </div>`;
+            });
+            document.getElementById('cat-modal').classList.add('open');
+        }
+        function closeCategoryModal() { document.getElementById('cat-modal').classList.remove('open'); }
+        function moveCategory(i, d) {
+            updateCatsTmp();
+            if(i+d >= 0 && i+d < categoriesConfig.length) {
+                [categoriesConfig[i], categoriesConfig[i+d]] = [categoriesConfig[i+d], categoriesConfig[i]];
+                openCategoryModal();
+            }
+        }
+        function updateCatsTmp() {
+            document.querySelectorAll('.cat-lbl').forEach((el,i) => categoriesConfig[i].label = el.value);
+        }
         function saveCategorySettings() {
             updateCatsTmp();
             db.collection(COL_SETTINGS).doc('categories').set({list:categoriesConfig}).then(()=>{closeCategoryModal(); showToast("Cats Salvas");});
         }
         function toggleStoreStatus() { db.collection(COL_SETTINGS).doc('store').set({isOpen:document.getElementById('store-toggle').checked},{merge:true}); }
         function toggleManualOverride() { db.collection(COL_SETTINGS).doc('store').set({manualOverride:document.getElementById('manual-override').checked},{merge:true}); }
-        function updateCatsTmp() {
-            document.querySelectorAll('.cat-lbl').forEach((el,i) => categoriesConfig[i].label = el.value);
-        }
         
         // --- FUNÇÕES DOS NOVOS MODAIS DE CONFIGURAÇÃO ---
         function openSettingsFeesModal() { document.getElementById('settings-fees-modal').classList.add('open'); }
