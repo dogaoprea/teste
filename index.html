@@ -1696,18 +1696,24 @@
                 // Adicionar (+): Chama o fluxo normal que verifica opções
                 selectMenuItem(itemId);
             } else {
-                // Remover (-): Remove a última ocorrência deste item no carrinho
-                let indexToRemove = -1;
-                // Procura de trás para frente para remover o mais recente
+                // Remover (-): Decrementa a quantidade do último item correspondente encontrado
+                let indexToUpdate = -1;
+                
+                // Procura de trás para frente para mexer no item mais recente adicionado desse tipo
                 for (let i = editingOrderCart.length - 1; i >= 0; i--) {
                     if (editingOrderCart[i].id === itemId) {
-                        indexToRemove = i;
+                        indexToUpdate = i;
                         break;
                     }
                 }
                 
-                if (indexToRemove !== -1) {
-                    editingOrderCart.splice(indexToRemove, 1);
+                if (indexToUpdate !== -1) {
+                    const item = editingOrderCart[indexToUpdate];
+                    if (item.qty > 1) {
+                        item.qty -= 1; // Decrementa se tiver mais de 1
+                    } else {
+                        editingOrderCart.splice(indexToUpdate, 1); // Remove se for o último
+                    }
                     renderEditOrderItems();
                     updateMenuModalQuantities();
                 }
@@ -1782,7 +1788,8 @@
             const optionsString = selectedValues.join(' + ');
 
             if (editingCartItemIndex !== null) {
-                // MODO EDIÇÃO: Atualiza item existente
+                // MODO EDIÇÃO: Atualiza item existente (sobrescreve opções)
+                // Nota: Ao editar, se o resultado for igual a outro item existente, não mesclamos automaticamente aqui para não confundir o usuário que está editando uma linha específica.
                 editingOrderCart[editingCartItemIndex].selectedOption = optionsString;
                 renderEditOrderItems();
                 showToast("Opções atualizadas!");
@@ -1819,18 +1826,31 @@
         }
 
         function addItemToCartFinal(item, optionsText) {
-            editingOrderCart.push({
-                id: item.id, 
-                name: item.name, 
-                price: item.price, 
-                qty: 1, 
-                obs: '', 
-                selectedOption: optionsText, 
-                _uuid: Math.random()
-            });
+            // Verifica se já existe um item igual (mesmo ID e mesmas opções)
+            const existingIndex = editingOrderCart.findIndex(cartItem => 
+                cartItem.id === item.id && cartItem.selectedOption === optionsText
+            );
+
+            if (existingIndex !== -1) {
+                // Se existe, apenas incrementa a quantidade
+                editingOrderCart[existingIndex].qty += 1;
+                // Efeito visual opcional para indicar atualização
+            } else {
+                // Se não existe, adiciona como novo item
+                editingOrderCart.push({
+                    id: item.id, 
+                    name: item.name, 
+                    price: item.price, 
+                    qty: 1, 
+                    obs: '', 
+                    selectedOption: optionsText, 
+                    _uuid: Math.random()
+                });
+            }
+
             renderEditOrderItems();
             updateMenuModalQuantities(); // Atualiza a quantidade na lista imediatamente
-            // showToast(`+1 ${item.name}`); // Toast opcional, já que o contador visual feedback
+            // showToast(`+1 ${item.name}`); // Feedback visual já está no contador
         }
 
         // --- CUSTOM ITEM & PAGAMENTO ---
