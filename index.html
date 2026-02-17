@@ -1644,7 +1644,14 @@
         
         // --- SELEÇÃO DE CARDÁPIO (ATUALIZADA COM OPÇÕES) ---
         function openMenuSelectionModal() {
+            renderMenuSelectionList();
+            document.getElementById('menu-selection-modal').classList.add('open');
+        }
+
+        function renderMenuSelectionList() {
             const container = document.getElementById('menu-selection-list');
+            // Tenta manter a posição do scroll ao atualizar
+            const previousScroll = container.scrollTop;
             container.innerHTML = '';
             
             const activeItems = currentItems.filter(i => i.available !== false);
@@ -1653,19 +1660,58 @@
                 const items = activeItems.filter(i => i.category === cat.id);
                 if (items.length) {
                     items.sort((a,b) => a.name.localeCompare(b.name));
-                    container.innerHTML += `<div style="background:#f0f0f0; padding:8px 15px; font-weight:800; font-family:'Bebas Neue'; font-size:18px; color:#555; position:sticky; top:0;">${cat.label}</div>`;
+                    // REMOVIDO: position:sticky; top:0; (Cabeçalho agora rola junto)
+                    container.innerHTML += `<div style="background:#f0f0f0; padding:8px 15px; font-weight:800; font-family:'Bebas Neue'; font-size:18px; color:#555;">${cat.label}</div>`;
                     
                     items.forEach(i => {
+                        // Conta quantos deste item já estão no carrinho
+                        const qty = editingOrderCart.filter(cartItem => cartItem.id === i.id).length;
+                        
+                        // REMOVIDO: Preço
+                        // ADICIONADO: Controles de Quantidade
                         container.innerHTML += `
-                            <div onclick="selectMenuItem('${i.id}')" style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:white;">
-                                <span style="font-weight:600; font-size:15px;">${i.name}</span>
-                                <span style="font-weight:700; color:var(--primary-dark);">R$ ${i.price.toFixed(2)}</span>
+                            <div style="padding:10px 15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; background:white;">
+                                <div style="flex:1;">
+                                    <span style="font-weight:600; font-size:15px; display:block;">${i.name}</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <button onclick="adjustMenuQty('${i.id}', -1)" style="width:34px; height:34px; border-radius:50%; border:1px solid #ddd; background:white; color:${qty>0?'#d32f2f':'#ccc'}; font-weight:bold; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;" ${qty===0?'disabled':''}>-</button>
+                                    
+                                    <span style="font-weight:700; font-size:16px; min-width:24px; text-align:center;">${qty}</span>
+                                    
+                                    <button onclick="selectMenuItem('${i.id}')" style="width:34px; height:34px; border-radius:50%; border:none; background:var(--primary); color:white; font-weight:bold; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">+</button>
+                                </div>
                             </div>
                         `;
                     });
                 }
             });
-            document.getElementById('menu-selection-modal').classList.add('open');
+            
+            // Restaura scroll
+            if (previousScroll > 0) container.scrollTop = previousScroll;
+        }
+
+        function adjustMenuQty(id, delta) {
+            if (delta < 0) {
+                // Remover item (lógica LIFO - Last In First Out para remover o último adicionado desse tipo)
+                let targetIdx = -1;
+                for (let i = editingOrderCart.length - 1; i >= 0; i--) {
+                    if (editingOrderCart[i].id === id) {
+                        targetIdx = i;
+                        break;
+                    }
+                }
+
+                if (targetIdx !== -1) {
+                    editingOrderCart.splice(targetIdx, 1);
+                    renderEditOrderItems(); // Atualiza carrinho principal
+                    renderMenuSelectionList(); // Atualiza contadores na lista
+                    showToast("Item removido");
+                }
+            } else {
+                // Adicionar item (usa a lógica padrão que já verifica opções)
+                selectMenuItem(id);
+            }
         }
 
         function closeMenuSelectionModal() { document.getElementById('menu-selection-modal').classList.remove('open'); }
@@ -1764,6 +1810,11 @@
             });
             renderEditOrderItems();
             showToast(`+1 ${item.name}`);
+            
+            // Se o modal de seleção estiver aberto, atualiza os contadores
+            if(document.getElementById('menu-selection-modal').classList.contains('open')) {
+                renderMenuSelectionList();
+            }
         }
 
         // --- CUSTOM ITEM & PAGAMENTO ---
