@@ -325,6 +325,10 @@
 
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 50px; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 3000; font-weight: 600; }
         #toast.show { opacity: 1; bottom: 30px; }
+        
+        /* Estilos de Ajuda de Variaveis */
+        .var-help { font-size: 10px; color: #555; background: #f0f0f0; padding: 4px 6px; border-radius: 4px; display: inline-block; margin: 2px; font-family: monospace; }
+        .help-container { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px dashed #ccc; }
     </style>
 </head>
 <body>
@@ -513,7 +517,7 @@
                         </div>
                         <div>
                             <h3 style="margin:0; font-size:16px; color:#333;">Mensagens Automáticas</h3>
-                            <small style="color:#888;">Textos de status do pedido</small>
+                            <small style="color:#888;">Textos de status e resumo do pedido</small>
                         </div>
                     </div>
                     <i class="fas fa-chevron-right" style="color:#ddd;"></i>
@@ -803,20 +807,46 @@
 
     <!-- Modal Mensagens Config -->
     <div id="settings-messages-modal" class="modal sub-modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 600px;">
             <h3 style="margin-top:0;">Mensagens de Status</h3>
-            <p style="font-size:13px; color:#666; margin-bottom:20px;">Personalize o texto enviado no WhatsApp.</p>
+            <p style="font-size:13px; color:#666; margin-bottom:15px;">Personalize o texto enviado no WhatsApp.</p>
             
             <div class="form-group">
                 <label class="form-label">Saiu para Entrega (Delivery)</label>
-                <textarea id="msg-delivering" class="form-input" rows="3" placeholder="Olá {nome}! Seu pedido saiu para entrega."></textarea>
-                <small style="color:#999; font-size:11px;">Use <b>{nome}</b> para o nome do cliente.</small>
+                <textarea id="msg-delivering" class="form-input" rows="2" placeholder="Olá {nome}! Seu pedido saiu para entrega."></textarea>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Pronto para Retirada (Balcão)</label>
-                <textarea id="msg-ready" class="form-input" rows="3" placeholder="Olá {nome}! Seu pedido está pronto."></textarea>
-                <small style="color:#999; font-size:11px;">Use <b>{nome}</b> para o nome do cliente.</small>
+                <textarea id="msg-ready" class="form-input" rows="2" placeholder="Olá {nome}! Seu pedido está pronto."></textarea>
+            </div>
+
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+            <!-- NOVO CAMPO: RESUMO DO PEDIDO -->
+            <div class="form-group">
+                <label class="form-label" style="color: var(--primary-dark); font-size: 15px;">Resumo do Pedido (Cópia/WhatsApp)</label>
+                <small style="color:#777; display:block; margin-bottom: 5px;">Este é o texto gerado ao clicar em copiar ou no ícone do WhatsApp no pedido.</small>
+                
+                <div class="help-container">
+                    <strong style="font-size:11px; display:block; margin-bottom:5px;">Variáveis Disponíveis:</strong>
+                    <span class="var-help">{id}</span>
+                    <span class="var-help">{data}</span>
+                    <span class="var-help">{hora}</span>
+                    <span class="var-help">{nome}</span>
+                    <span class="var-help">{telefone}</span>
+                    <span class="var-help">{tipo}</span>
+                    <span class="var-help">{tipo_icone}</span>
+                    <span class="var-help">{endereco}</span>
+                    <span class="var-help">{pagamento_completo}</span>
+                    <span class="var-help">{itens}</span>
+                    <span class="var-help">{subtotal}</span>
+                    <span class="var-help">{taxas_extras}</span>
+                    <span class="var-help">{total}</span>
+                    <span class="var-help">{link_mapa}</span>
+                </div>
+
+                <textarea id="msg-order-summary" class="form-input" rows="12" style="font-family: monospace; font-size: 13px;"></textarea>
             </div>
 
             <div style="display:flex; gap:10px; margin-top:20px;">
@@ -883,6 +913,26 @@
             { id: 'bebidas', label: 'Bebidas' }
         ];
         
+        // Template padrão do pedido
+        const defaultOrderTemplate = `*PEDIDO #{id}*
+📅 {data} às {hora}
+
+👤 *Cliente:* {nome}
+📱 *WhatsApp:* {telefone}
+{tipo_icone} *Tipo:* {tipo}
+📍 *Endereço:* {endereco}
+💰 *Pagamento:* {pagamento_completo}
+
+*ITENS DO PEDIDO:*
+--------------------------------
+{itens}
+--------------------------------
+Subtotal: R$ {subtotal}
+{taxas_extras}
+*TOTAL FINAL: R$ {total}*
+
+{link_mapa}`;
+        
         let categoriesConfig = JSON.parse(JSON.stringify(defaultCategories));
         
         let currentItems = [];
@@ -900,7 +950,8 @@
         let paymentFees = { credit: 4.98, debit: 1.99 };
         let msgTemplates = { 
             delivering: "Olá {nome}! 🛵💨 Seu pedido saiu para entrega.", 
-            ready: "Olá {nome}! 🍔🥡 Seu pedido está pronto para retirada." 
+            ready: "Olá {nome}! 🍔🥡 Seu pedido está pronto para retirada.",
+            orderSummary: defaultOrderTemplate // Adicionado
         };
         // Horário Padrão (será sobrescrito pelo banco)
         let shiftStart = "18:00";
@@ -1000,11 +1051,15 @@
                     const data = doc.data();
                     if (data.delivering) msgTemplates.delivering = data.delivering;
                     if (data.ready) msgTemplates.ready = data.ready;
+                    if (data.orderSummary) msgTemplates.orderSummary = data.orderSummary; // Carrega o resumo
                 }
                 const msgDel = document.getElementById('msg-delivering');
                 const msgReady = document.getElementById('msg-ready');
+                const msgSummary = document.getElementById('msg-order-summary'); // Novo campo
+                
                 if(msgDel) msgDel.value = msgTemplates.delivering;
                 if(msgReady) msgReady.value = msgTemplates.ready;
+                if(msgSummary) msgSummary.value = msgTemplates.orderSummary || defaultOrderTemplate;
             });
             
             // Carrega o Horário de Expediente
@@ -1147,8 +1202,13 @@
         function saveMessageTemplates() {
             const del = document.getElementById('msg-delivering').value;
             const rdy = document.getElementById('msg-ready').value;
+            const summary = document.getElementById('msg-order-summary').value; // Novo
             
-            db.collection(COL_SETTINGS).doc('messages').set({ delivering: del, ready: rdy })
+            db.collection(COL_SETTINGS).doc('messages').set({ 
+                delivering: del, 
+                ready: rdy,
+                orderSummary: summary // Salva o novo campo
+            })
               .then(() => {
                   showToast("Mensagens salvas!");
                   closeSettingsMessagesModal(); // Fecha o modal
@@ -1381,7 +1441,7 @@
             const actions = isHistory ? 
                 `<button class="btn-sm btn-reopen" style="background:#FF9800;margin-right:5px;" onclick="reopenOrder('${order._id}')" title="Reabrir Pedido"><i class="fas fa-undo"></i></button>
                  <button class="btn-sm btn-delete-forever" onclick="deleteOrderForever('${order._id}')" title="Apagar"><i class="fas fa-trash"></i></button>` :
-                `<button class="btn-sm btn-copy" onclick="copyToClipboard(this, \`${getTextClipboard(order)}\`)"><i class="far fa-copy"></i></button>
+                `<button class="btn-sm btn-copy" onclick="copyToClipboard(this, \`${getTextClipboard(order).replace(/`/g, '\\`')}\`)"><i class="far fa-copy"></i></button>
                  <a href="https://wa.me/?text=${encodeURIComponent(getTextClipboard(order))}" target="_blank" class="btn-sm btn-share"><i class="fab fa-whatsapp"></i></a>
                  <button class="btn-sm btn-edit-order" onclick="openOrderEditModal('${order._id}')"><i class="fas fa-pencil-alt"></i></button>`;
 
@@ -1438,85 +1498,93 @@
         }
         
         function getTextClipboard(order) {
-            // Values
+            // Obtém o template salvo ou usa o padrão
+            let template = msgTemplates.orderSummary || defaultOrderTemplate;
+
+            // 1. Dados Básicos
             const fee = order.deliveryFee || 0;
             const surcharge = order.surcharge || 0;
             const discount = order.discount || 0;
             const total = order.total || 0;
-            const isPaid = order.isPaid === true || (order.status === 'done' && order.isPaid !== false);
-            const paymentStatusText = isPaid ? '✅ PAGO' : '❌ A PAGAR';
+            const sub = (order.cart||[]).reduce((a,i)=>a+(i.price*i.qty),0);
             
-            // Date
+            // Datas
             const date = order.timestamp ? new Date(order.timestamp.seconds * 1000) : new Date();
             const dateStr = date.toLocaleDateString('pt-BR');
             const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            // Payment & Change Logic
-            let paymentInfo = `${order.payment} (${paymentStatusText})`;
+            // 2. Pagamento & Status
+            const isPaid = order.isPaid === true || (order.status === 'done' && order.isPaid !== false);
+            const paymentStatusText = isPaid ? '✅ PAGO' : '❌ A PAGAR';
+            let paymentFullText = `${order.payment} (${paymentStatusText})`;
+            
+            // Lógica de Troco dentro do texto do pagamento
             if(order.payment === 'Dinheiro' && order.change) {
                 const amountTendered = parseFloat(order.change);
                 if(!isNaN(amountTendered)) {
                     const changeNeeded = amountTendered - total;
-                    paymentInfo += ` -> Para: R$ ${amountTendered.toFixed(2)}`;
+                    paymentFullText += ` -> Para: R$ ${amountTendered.toFixed(2)}`;
                     if(changeNeeded > 0) {
-                        paymentInfo += ` (Troco: R$ ${changeNeeded.toFixed(2)})`;
+                        paymentFullText += ` (Troco: R$ ${changeNeeded.toFixed(2)})`;
                     }
                 }
             }
 
-            // CLEAN PHONE LOGIC
+            // 3. Telefone Limpo
             let cleanPhone = order.userPhone || '';
             if(cleanPhone.startsWith('55') && cleanPhone.length > 10) {
-                cleanPhone = cleanPhone.substring(2);
+                cleanPhone = cleanPhone.substring(2); // Remove o 55 para exibição bonita
             }
 
-            // DEFINIÇÃO DOS EMOJIS POR TIPO
-            const typeEmojis = {
-                'Entrega': '🛵',
-                'Mesa': '🍽️',
-                'Retirada': '📦'
-            };
+            // 4. Ícone do Tipo
+            const typeEmojis = { 'Entrega': '🛵', 'Mesa': '🍽️', 'Retirada': '📦' };
             const typeIcon = typeEmojis[order.type] || '🛍️';
 
-            // Build Text
-            let t = `*PEDIDO #${order.orderId || '???'}*\n`;
-            t += `📅 ${dateStr} às ${timeStr}\n\n`;
-            
-            t += `👤 *Cliente:* ${order.customerName}\n`;
-            if(cleanPhone) t += `📱 *WhatsApp:* ${cleanPhone}\n`;
-            
-            t += `${typeIcon} *Tipo:* ${order.type}\n`;
-            
-            t += `📍 *Endereço:* ${order.address || 'Não informado'}\n`;
-            t += `💰 *Pagamento:* ${paymentInfo}\n`;
-            
-            t += `\n*ITENS DO PEDIDO:*\n--------------------------------\n`;
-            
-            if (order.cart) {
-                t += order.cart.map(i => {
+            // 5. Lista de Itens (Formatada)
+            let itemsText = "";
+            if (order.cart && order.cart.length > 0) {
+                itemsText = order.cart.map(i => {
                     const itemTotal = (i.price || 0) * i.qty;
                     let l = `${i.qty}x ${i.name} (R$ ${itemTotal.toFixed(2)})`;
                     if(i.selectedOption) l+= `\n   + ${i.selectedOption}`;
                     if(i.obs) l+= `\n   Obs: ${i.obs}`; 
                     return l;
                 }).join('\n\n');
+            } else {
+                itemsText = "(Nenhum item)";
             }
-            
-            t += `\n--------------------------------\n`;
-            
-            // Financial Summary
-            const sub = (order.cart||[]).reduce((a,i)=>a+(i.price*i.qty),0);
-            t += `Subtotal: R$ ${sub.toFixed(2)}\n`;
-            
-            if(fee > 0) t += `Taxa Entrega: R$ ${fee.toFixed(2)}\n`;
-            if(surcharge > 0) t += `Acréscimo: + R$ ${surcharge.toFixed(2)}\n`;
-            if(discount > 0) t += `Desconto: - R$ ${discount.toFixed(2)}\n`;
-            
-            t += `\n*TOTAL FINAL: R$ ${total.toFixed(2)}*`;
-            
-            if(order.mapsLink) t += `\n\n🗺️ Link Maps: ${order.mapsLink}`;
 
-            return t;
+            // 6. Taxas Extras (Formatado)
+            let extraFeesText = "";
+            if(fee > 0) extraFeesText += `Taxa Entrega: R$ ${fee.toFixed(2)}\n`;
+            if(surcharge > 0) extraFeesText += `Acréscimo: + R$ ${surcharge.toFixed(2)}\n`;
+            if(discount > 0) extraFeesText += `Desconto: - R$ ${discount.toFixed(2)}\n`;
+
+            // 7. Link Mapa
+            let mapLinkText = order.mapsLink ? `🗺️ Link Maps: ${order.mapsLink}` : "";
+
+            // --- SUBSTITUIÇÃO NO TEMPLATE ---
+            // Substitui cada variável pelo valor calculado
+            let finalMsg = template
+                .replace(/{id}/g, order.orderId || '???')
+                .replace(/{data}/g, dateStr)
+                .replace(/{hora}/g, timeStr)
+                .replace(/{nome}/g, order.customerName || 'Cliente')
+                .replace(/{telefone}/g, cleanPhone || 'Não inf.')
+                .replace(/{tipo}/g, order.type || 'Entrega')
+                .replace(/{tipo_icone}/g, typeIcon)
+                .replace(/{endereco}/g, order.address || 'Não informado')
+                .replace(/{pagamento}/g, order.payment) // Apenas o método
+                .replace(/{pagamento_completo}/g, paymentFullText) // Método + Status + Troco
+                .replace(/{itens}/g, itemsText)
+                .replace(/{subtotal}/g, sub.toFixed(2))
+                .replace(/{taxas_extras}/g, extraFeesText)
+                .replace(/{total}/g, total.toFixed(2))
+                .replace(/{link_mapa}/g, mapLinkText);
+
+            // Limpeza final de linhas vazias extras que podem ter sobrado (ex: taxas vazias)
+            // Remove linhas que tenham sobrado apenas com quebras de linha acumuladas
+            return finalMsg.trim();
         }
         
         function updateOrderStatus(docId, newStatus, customerName, customerPhone) {
@@ -1557,7 +1625,7 @@
         function copyToClipboard(btn, text) {
             try {
                 const textarea = document.createElement('textarea');
-                textarea.value = text.replace(/`/g, '\\`');
+                textarea.value = text; // Removido replace de backtick pois agora é texto puro
                 textarea.style.position = 'fixed'; 
                 textarea.style.left = '-9999px';
                 document.body.appendChild(textarea);
