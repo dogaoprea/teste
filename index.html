@@ -849,6 +849,28 @@
                 <textarea id="msg-order-summary" class="form-input" rows="12" style="font-family: monospace; font-size: 13px;"></textarea>
             </div>
 
+            <!-- NOVA SEÇÃO: FORMATAÇÃO DO ITEM E SEPARADOR -->
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            
+            <div style="background:#f9f9f9; padding:15px; border-radius:8px; border:1px solid #eee;">
+                <label class="form-label" style="color: var(--primary-dark); font-size: 15px; margin-bottom:10px;">Formatação da Lista de Itens</label>
+                
+                <div class="form-group">
+                    <label class="form-label">Template do Item (Como cada produto aparece)</label>
+                    <small style="color:#666; font-size:11px; display:block; margin-bottom:5px;">
+                        Use: <b class="var-help">{qtd}</b> <b class="var-help">{nome}</b> <b class="var-help">{valor}</b> <b class="var-help">{total_item}</b> 
+                        <b class="var-help">{opcoes_full}</b> <b class="var-help">{obs_full}</b>
+                    </small>
+                    <textarea id="msg-item-tpl" class="form-input" rows="3" style="font-family: monospace; font-size: 13px;"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Separador entre Itens</label>
+                    <small style="color:#666; font-size:11px; display:block; margin-bottom:5px;">O que separa um item do outro? (Pressione Enter para pular linha)</small>
+                    <textarea id="msg-item-sep" class="form-input" rows="2" style="font-family: monospace; font-size: 13px;" placeholder="(Pressione Enter para pular linha)"></textarea>
+                </div>
+            </div>
+
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn" style="background:#eee; flex:1;" onclick="closeSettingsMessagesModal()">Cancelar</button>
                 <button class="btn" style="background:#25D366; color:white; flex:1;" onclick="saveMessageTemplates()">Salvar</button>
@@ -933,6 +955,10 @@ Subtotal: R$ {subtotal}
 
 {link_mapa}`;
         
+        // Novos Defaults
+        const defaultItemTemplate = "{qtd}x {nome} (R$ {total_item}){opcoes_full}{obs_full}";
+        const defaultItemSeparator = "\n\n";
+
         let categoriesConfig = JSON.parse(JSON.stringify(defaultCategories));
         
         let currentItems = [];
@@ -951,7 +977,9 @@ Subtotal: R$ {subtotal}
         let msgTemplates = { 
             delivering: "Olá {nome}! 🛵💨 Seu pedido saiu para entrega.", 
             ready: "Olá {nome}! 🍔🥡 Seu pedido está pronto para retirada.",
-            orderSummary: defaultOrderTemplate // Adicionado
+            orderSummary: defaultOrderTemplate,
+            itemTemplate: defaultItemTemplate,
+            itemSeparator: defaultItemSeparator
         };
         // Horário Padrão (será sobrescrito pelo banco)
         let shiftStart = "18:00";
@@ -1051,15 +1079,22 @@ Subtotal: R$ {subtotal}
                     const data = doc.data();
                     if (data.delivering) msgTemplates.delivering = data.delivering;
                     if (data.ready) msgTemplates.ready = data.ready;
-                    if (data.orderSummary) msgTemplates.orderSummary = data.orderSummary; // Carrega o resumo
+                    if (data.orderSummary) msgTemplates.orderSummary = data.orderSummary;
+                    if (data.itemTemplate) msgTemplates.itemTemplate = data.itemTemplate;
+                    if (data.itemSeparator !== undefined) msgTemplates.itemSeparator = data.itemSeparator;
                 }
                 const msgDel = document.getElementById('msg-delivering');
                 const msgReady = document.getElementById('msg-ready');
-                const msgSummary = document.getElementById('msg-order-summary'); // Novo campo
+                const msgSummary = document.getElementById('msg-order-summary');
+                const msgItemTpl = document.getElementById('msg-item-tpl');
+                const msgItemSep = document.getElementById('msg-item-sep');
                 
                 if(msgDel) msgDel.value = msgTemplates.delivering;
                 if(msgReady) msgReady.value = msgTemplates.ready;
                 if(msgSummary) msgSummary.value = msgTemplates.orderSummary || defaultOrderTemplate;
+                if(msgItemTpl) msgItemTpl.value = msgTemplates.itemTemplate || defaultItemTemplate;
+                // Se for undefined ou null, usa default. Se for string vazia, usa vazia (pois o usuário pode querer sem espaço).
+                if(msgItemSep) msgItemSep.value = (msgTemplates.itemSeparator !== undefined) ? msgTemplates.itemSeparator : defaultItemSeparator;
             });
             
             // Carrega o Horário de Expediente
@@ -1202,12 +1237,16 @@ Subtotal: R$ {subtotal}
         function saveMessageTemplates() {
             const del = document.getElementById('msg-delivering').value;
             const rdy = document.getElementById('msg-ready').value;
-            const summary = document.getElementById('msg-order-summary').value; // Novo
+            const summary = document.getElementById('msg-order-summary').value; 
+            const itemTpl = document.getElementById('msg-item-tpl').value;
+            const itemSep = document.getElementById('msg-item-sep').value;
             
             db.collection(COL_SETTINGS).doc('messages').set({ 
                 delivering: del, 
                 ready: rdy,
-                orderSummary: summary // Salva o novo campo
+                orderSummary: summary,
+                itemTemplate: itemTpl,
+                itemSeparator: itemSep
             })
               .then(() => {
                   showToast("Mensagens salvas!");
@@ -1499,7 +1538,9 @@ Subtotal: R$ {subtotal}
         
         function getTextClipboard(order) {
             // Obtém o template salvo ou usa o padrão
-            let template = msgTemplates.orderSummary || defaultOrderTemplate;
+            let mainTemplate = msgTemplates.orderSummary || defaultOrderTemplate;
+            let itemTemplate = msgTemplates.itemTemplate || defaultItemTemplate;
+            let itemSeparator = (msgTemplates.itemSeparator !== undefined) ? msgTemplates.itemSeparator : defaultItemSeparator;
 
             // 1. Dados Básicos
             const fee = order.deliveryFee || 0;
@@ -1518,7 +1559,7 @@ Subtotal: R$ {subtotal}
             const paymentStatusText = isPaid ? '✅ PAGO' : '❌ A PAGAR';
             let paymentFullText = `${order.payment} (${paymentStatusText})`;
             
-            // Lógica de Troco dentro do texto do pagamento
+            // Lógica de Troco
             if(order.payment === 'Dinheiro' && order.change) {
                 const amountTendered = parseFloat(order.change);
                 if(!isNaN(amountTendered)) {
@@ -1533,23 +1574,33 @@ Subtotal: R$ {subtotal}
             // 3. Telefone Limpo
             let cleanPhone = order.userPhone || '';
             if(cleanPhone.startsWith('55') && cleanPhone.length > 10) {
-                cleanPhone = cleanPhone.substring(2); // Remove o 55 para exibição bonita
+                cleanPhone = cleanPhone.substring(2);
             }
 
             // 4. Ícone do Tipo
             const typeEmojis = { 'Entrega': '🛵', 'Mesa': '🍽️', 'Retirada': '📦' };
             const typeIcon = typeEmojis[order.type] || '🛍️';
 
-            // 5. Lista de Itens (Formatada)
+            // 5. Lista de Itens (Usando Template do Item)
             let itemsText = "";
             if (order.cart && order.cart.length > 0) {
                 itemsText = order.cart.map(i => {
                     const itemTotal = (i.price || 0) * i.qty;
-                    let l = `${i.qty}x ${i.name} (R$ ${itemTotal.toFixed(2)})`;
-                    if(i.selectedOption) l+= `\n   + ${i.selectedOption}`;
-                    if(i.obs) l+= `\n   Obs: ${i.obs}`; 
-                    return l;
-                }).join('\n\n');
+                    // Prepara variaveis do item
+                    let opFull = i.selectedOption ? `\n   + ${i.selectedOption}` : '';
+                    let obsFull = i.obs ? `\n   Obs: ${i.obs}` : '';
+                    
+                    return itemTemplate
+                        .replace(/{qtd}/g, i.qty)
+                        .replace(/{nome}/g, i.name)
+                        .replace(/{valor}/g, i.price.toFixed(2))
+                        .replace(/{total_item}/g, itemTotal.toFixed(2))
+                        .replace(/{opcoes_full}/g, opFull)
+                        .replace(/{obs_full}/g, obsFull)
+                        // Raw variables se necessario
+                        .replace(/{opcoes}/g, i.selectedOption || '')
+                        .replace(/{obs}/g, i.obs || '');
+                }).join(itemSeparator);
             } else {
                 itemsText = "(Nenhum item)";
             }
@@ -1563,9 +1614,8 @@ Subtotal: R$ {subtotal}
             // 7. Link Mapa
             let mapLinkText = order.mapsLink ? `🗺️ Link Maps: ${order.mapsLink}` : "";
 
-            // --- SUBSTITUIÇÃO NO TEMPLATE ---
-            // Substitui cada variável pelo valor calculado
-            let finalMsg = template
+            // --- SUBSTITUIÇÃO NO TEMPLATE PRINCIPAL ---
+            let finalMsg = mainTemplate
                 .replace(/{id}/g, order.orderId || '???')
                 .replace(/{data}/g, dateStr)
                 .replace(/{hora}/g, timeStr)
@@ -1574,16 +1624,14 @@ Subtotal: R$ {subtotal}
                 .replace(/{tipo}/g, order.type || 'Entrega')
                 .replace(/{tipo_icone}/g, typeIcon)
                 .replace(/{endereco}/g, order.address || 'Não informado')
-                .replace(/{pagamento}/g, order.payment) // Apenas o método
-                .replace(/{pagamento_completo}/g, paymentFullText) // Método + Status + Troco
+                .replace(/{pagamento}/g, order.payment)
+                .replace(/{pagamento_completo}/g, paymentFullText)
                 .replace(/{itens}/g, itemsText)
                 .replace(/{subtotal}/g, sub.toFixed(2))
                 .replace(/{taxas_extras}/g, extraFeesText)
                 .replace(/{total}/g, total.toFixed(2))
                 .replace(/{link_mapa}/g, mapLinkText);
 
-            // Limpeza final de linhas vazias extras que podem ter sobrado (ex: taxas vazias)
-            // Remove linhas que tenham sobrado apenas com quebras de linha acumuladas
             return finalMsg.trim();
         }
         
